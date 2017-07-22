@@ -1,0 +1,45 @@
+version: 2
+jobs:
+  build:
+    docker:
+       - image: circleci/ruby:2.4
+
+    environment:
+      LAST_STABLE: 2.4.1
+      EARLY_STABLE: 2.2.7
+      MRI_VERSIONS: 2.4.1,2.3.4,2.2.7
+      MRI_OLD_VERSIONS: 2.1.10,2.0.0,1.9.3
+      SIDEKIQ_OLD_VERSIONS: 2.1.10,2.0.0
+      RAILS3_VERSIONS: 2.3.4,2.2.7,2.1.10,2.0.0,1.9.3
+      RAILS4_VERSIONS: 2.3.4,2.2.7,2.1.10
+      RAILS5_VERSIONS: 2.3.4,2.2.7
+      RAILS3_SIDEKIQ_VERSIONS: 2.1.10,2.0.0
+      RAILS4_SIDEKIQ_VERSIONS: 2.3.4,2.2.7
+      JRUBY_VERSIONS: jruby-9.1.5.0
+      AGENT_BUILD_PATH: "/home/ubuntu/agent"
+      TEST_DATADOG_INTEGRATION: 1
+
+    working_directory: ~/ddtracer
+
+    branches:
+      only:
+        - master
+        - develop
+
+    steps:
+      - checkout
+
+      - restore_cache:
+        keys: [dependencies-{{ checksum "Gemfile.lock" }}, dependencies-]
+
+      - run: gem install bundler
+      - run: bundle install --jobs=4 --retry=3 --path vendor/bundle
+      - run: appraisal install
+
+      # - run: rake test:main
+      # - run: rake benchmark
+      # - run: appraisal contrib rake test:http
+      - run: appraisal contrib rake test:sinatra
+
+      - save_cache:
+        key: dependencies-{{ checksum "Gemfile.lock" }}
